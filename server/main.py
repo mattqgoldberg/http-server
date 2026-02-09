@@ -1,6 +1,6 @@
 import socket
 from enum import Enum
-from parser import parse_request
+from server.parser import parse_request
 
 HOST = "127.0.0.1"
 PORT = 8080
