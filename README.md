@@ -12,17 +12,6 @@ This project intentionally avoids frameworks and focuses on correctness, simplic
 - Basic Content-Type handling
 - Graceful error responses (400, 404, 501, 505)
 
-## Project Structure
-server/
-    __init__.py
-    main.py        # Server loop and socket handling
-    parser.py      # HTTP request parsing & validation
-    reader.py      # File reading utilities
-    mime_types.py  # Extension → Content-Type mapping
-
-www/               # Document root (static files)
-venv/              # Virtual environment (not committed)
-
 ## Running the Server
 Run the server as a package module (recommended):
 
