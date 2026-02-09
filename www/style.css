@@ -1,0 +1,9 @@
+/* OBVIOUS TEST STYLE */
+body {
+  background: hotpink;
+  color: black;
+}
+
+* {
+  outline: 3px dashed lime;
+}

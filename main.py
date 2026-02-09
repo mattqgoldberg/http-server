@@ -1,5 +1,6 @@
 import socket
 from enum import Enum
+from parser import parse_request
 
 HOST = "127.0.0.1"
 PORT = 8080
@@ -33,7 +34,7 @@ def build_request(request: bytearray, data: bytes, conn: socket.socket):
 
 def handle_request(headers: bytearray, body: bytearray, conn: socket.socket):
     print("Handling request")
-    if not send_response(conn, b"HTTP/1.0 200 OK\r\nContent-Length: 6\r\nContent-Type: text/plain\r\nConnection: close\r\n\r\nHello\n"):
+    if not send_response(conn, parse_request(headers, body)):
         return RequestStatus.ABORTED
 
     return RequestStatus.COMPLETE
