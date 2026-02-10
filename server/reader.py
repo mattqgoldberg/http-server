@@ -1,4 +1,4 @@
-def read_file(path: str):
+def read_file(path: str) -> bytes | None:
     try:
         with open(path, 'rb') as f:
             bytes_data = f.read()
@@ -7,5 +7,5 @@ def read_file(path: str):
         return bytes_data
     except Exception as e:
         print(e)
-        return False
+        return None
 
