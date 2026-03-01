@@ -2,13 +2,24 @@ from server.reader import read_file
 from server.mime_types import content_types
 
 error_responses = {
-    400: b"HTTP/1.0 400 Bad Request\r\n\r\n",
-    404: b"HTTP/1.0 404 Not Found\r\n\r\n",
-    501: b"HTTP/1.0 501 Not Implemented\r\n\r\n",
-    505: b"HTTP/1.0 505 Version Not Supported\r\n\r\n",
+    400: b"HTTP/1.1 400 Bad Request\r\n\r\n",
+    404: b"HTTP/1.1 404 Not Found\r\n\r\n",
+    501: b"HTTP/1.1 501 Not Implemented\r\n\r\n",
+    505: b"HTTP/1.1 505 Version Not Supported\r\n\r\n",
 }
 
 hex_digits = b"0123456789abcdefABCDEF"
+
+
+def has_host_header(headers: bytes) -> bool:
+    """Return True if the header block contains a Host header (case-insensitive)."""
+    lines = headers.split(b"\r\n")
+    # First line is request line; rest are header lines
+    for line in lines[1:]:
+        if line.strip().lower().startswith(b"host:"):
+            return True
+    return False
+
 
 def has_malformed_percent(path: bytearray) -> bool:
 
@@ -63,7 +74,7 @@ def parse_path(target: bytearray) -> str | None:
     return path_str
 
 def format_response(file_content: bytes, content_type: str):
-    msg = f"HTTP/1.0 200 OK\r\nContent-Length: {len(file_content)}\r\nContent-Type: {content_type}\r\nConnection: close\r\n\r\n".encode("ascii")
+    msg = f"HTTP/1.1 200 OK\r\nContent-Length: {len(file_content)}\r\nContent-Type: {content_type}\r\nConnection: close\r\n\r\n".encode("ascii")
     return msg + file_content
 
 def get_content_type(path: str):
@@ -88,6 +99,9 @@ def parse_request(headers: bytearray, body: bytearray):
 
     if http_version != b"HTTP/1.0" and http_version != b"HTTP/1.1":
         return error_responses[505]
+
+    if http_version == b"HTTP/1.1" and not has_host_header(bytes(headers)):
+        return error_responses[400]
 
     path = parse_path(target) 
     print(path)

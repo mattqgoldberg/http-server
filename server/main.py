@@ -22,7 +22,7 @@ def build_request(request: bytearray, data: bytes, conn: socket.socket):
     request.extend(data)
 
     if len(request) > MAX_REQ_SIZE:
-        if not send_response(conn, b"HTTP/1.0 413 Payload Too Large\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"):
+        if not send_response(conn, b"HTTP/1.1 413 Payload Too Large\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"):
             return RequestStatus.ABORTED
         return RequestStatus.TOO_LARGE
 
