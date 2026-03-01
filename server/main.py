@@ -2,7 +2,7 @@
 
 import socket
 from enum import Enum
-from server.parser import parse_request
+from server.parser import error_response, parse_request
 
 HOST = "127.0.0.1"
 PORT = 8080
@@ -28,7 +28,7 @@ def build_request(request: bytearray, data: bytes, conn: socket.socket) -> Reque
     request.extend(data)
 
     if len(request) > MAX_REQ_SIZE:
-        if not send_response(conn, b"HTTP/1.1 413 Payload Too Large\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"):
+        if not send_response(conn, error_response(413)):
             return RequestStatus.ABORTED
         return RequestStatus.TOO_LARGE
 
