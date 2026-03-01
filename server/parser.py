@@ -1,3 +1,5 @@
+"""HTTP request parsing and response formatting."""
+
 from server.reader import read_file
 from server.mime_types import content_types
 
@@ -22,7 +24,7 @@ def has_host_header(headers: bytes) -> bool:
 
 
 def has_malformed_percent(path: bytearray) -> bool:
-
+    """Return True if path contains a malformed %-encoding (e.g. % without two hex digits)."""
     n = len(path)
     for i in range(n):
         if path[i] == ord('%'):
@@ -50,9 +52,11 @@ def percent_decode(path_str: str) -> str:
 
 
 def parse_path(target: bytearray) -> str | None:
-
-    # Path is everything before first ? (query)
-    path,_,_ = target.partition(b"?")
+    """
+    Parse request-target into a filesystem path under www/, or None if invalid.
+    Rejects directory traversal, malformed percent-encoding, and non-UTF-8 paths.
+    """
+    path, _, _ = target.partition(b"?")
 
     if len(path) == 0:
         return None
@@ -72,7 +76,7 @@ def parse_path(target: bytearray) -> str | None:
     if path[0] != ord('/'):
         return None
 
-    if b"\x00" in path or b"\\" in path:
+    if b"\x00" in path:
         return None
 
     try:
@@ -90,19 +94,27 @@ def parse_path(target: bytearray) -> str | None:
 
     return path_str
 
-def format_response(file_content: bytes, content_type: str):
+
+def format_response(file_content: bytes, content_type: str) -> bytes:
+    """Build an HTTP/1.1 200 response with Content-Length and Content-Type headers."""
     msg = f"HTTP/1.1 200 OK\r\nContent-Length: {len(file_content)}\r\nContent-Type: {content_type}\r\nConnection: close\r\n\r\n".encode("ascii")
     return msg + file_content
 
-def get_content_type(path: str):
+
+def get_content_type(path: str) -> str:
+    """Return the Content-Type for a path based on its file extension."""
     file_ext = path.split(".")[-1]
     if file_ext not in content_types:
         return "text/plain"
 
     return content_types[file_ext]
 
-def parse_request(headers: bytearray, body: bytearray):
 
+def parse_request(headers: bytearray, body: bytearray) -> bytes:
+    """
+    Parse an HTTP request and return the response bytes.
+    Accepts GET only; requires Host for HTTP/1.1. Returns error response bytes on failure.
+    """
     request_line, _, _ = headers.partition(b"\r\n")
     request_line_tokens = request_line.split()
 
@@ -120,15 +132,14 @@ def parse_request(headers: bytearray, body: bytearray):
     if http_version == b"HTTP/1.1" and not has_host_header(bytes(headers)):
         return error_responses[400]
 
-    path = parse_path(target) 
-    print(path)
+    path = parse_path(target)
 
-    if path == None:
+    if path is None:
         return error_responses[404]
 
     file_content = read_file(path)
 
-    if file_content == None:
+    if file_content is None:
         return error_responses[404]
 
     content_type = get_content_type(path)

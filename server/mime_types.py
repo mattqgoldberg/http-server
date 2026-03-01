@@ -1,3 +1,5 @@
+"""File extension to Content-Type mapping for HTTP responses."""
+
 content_types = {
     # HTML & text
     "html": "text/html",

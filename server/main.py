@@ -1,3 +1,5 @@
+"""TCP HTTP server: accepts connections, buffers request headers, and dispatches to the parser."""
+
 import socket
 from enum import Enum
 from server.parser import parse_request
@@ -7,14 +9,18 @@ PORT = 8080
 BUFSIZE = 1024
 MAX_REQ_SIZE = 8 * 1024
 
+
 class RequestStatus(Enum):
+    """Status of the current request read from the connection."""
+
     IN_PROGRESS = 1
     COMPLETE = 2
     ABORTED = 3
     TOO_LARGE = 4
 
-# Appends data to request bytearray until end of headers is found
-def build_request(request: bytearray, data: bytes, conn: socket.socket):
+
+def build_request(request: bytearray, data: bytes, conn: socket.socket) -> RequestStatus:
+    """Append data to request buffer; when headers are complete, handle and return status."""
 
     if data == b"":
         return RequestStatus.ABORTED
@@ -32,52 +38,46 @@ def build_request(request: bytearray, data: bytes, conn: socket.socket):
 
     return RequestStatus.IN_PROGRESS
 
-def handle_request(headers: bytearray, body: bytearray, conn: socket.socket):
-    print("Handling request")
+
+def handle_request(headers: bytearray, body: bytearray, conn: socket.socket) -> RequestStatus:
+    """Parse the request, send the response, and return COMPLETE or ABORTED."""
     if not send_response(conn, parse_request(headers, body)):
         return RequestStatus.ABORTED
 
     return RequestStatus.COMPLETE
 
-def send_response(conn: socket.socket, response: bytes):
+def send_response(conn: socket.socket, response: bytes) -> bool:
+    """Send response bytes on the connection. Return False on send error."""
     try:
         conn.sendall(response)
-    except Exception as e:
-        print(e)
+    except OSError:
         return False
     return True
 
-def handle_connection(s: socket.socket):
+
+def handle_connection(s: socket.socket) -> None:
+    """Accept one connection and process a single request, then close."""
     conn, addr = s.accept()
     with conn:
-        print('Connected by', addr)
-
-        # Once connected, receive and respond to requests
         request = bytearray()
         request_status = RequestStatus.IN_PROGRESS
         while request_status == RequestStatus.IN_PROGRESS:
             try:
                 data = conn.recv(BUFSIZE)
-                print("Data recieved")
                 request_status = build_request(request, data, conn)
-            except:
+            except OSError:
                 request_status = RequestStatus.ABORTED
-
-        print("Request handled:", request_status.name)
-
-    print("Connection closed")
+            if request_status != RequestStatus.IN_PROGRESS:
+                break
 
 
-
-def main():
-    print("Starting server")
+def main() -> None:
+    """Bind to HOST:PORT and accept connections indefinitely."""
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         s.bind((HOST, PORT))
         s.listen(1)
-
-        # Keep listening for new connections indefinitely
-        while(True):
+        while True:
             handle_connection(s)
 
 
