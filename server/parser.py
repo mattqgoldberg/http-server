@@ -33,6 +33,22 @@ def has_malformed_percent(path: bytearray) -> bool:
         
     return False
 
+
+def percent_decode(path_str: str) -> str:
+    """Decode %XX sequences to characters. Caller must have validated with has_malformed_percent."""
+    result = []
+    i = 0
+    while i < len(path_str):
+        if path_str[i] == "%" and i + 2 < len(path_str):
+            hex_pair = path_str[i + 1 : i + 3]
+            result.append(chr(int(hex_pair, 16)))
+            i += 3
+        else:
+            result.append(path_str[i])
+            i += 1
+    return "".join(result)
+
+
 def parse_path(target: bytearray) -> str | None:
 
     # Path is everything before first ? (query)
@@ -65,9 +81,10 @@ def parse_path(target: bytearray) -> str | None:
         return None
 
     # Post decode checks
-
-
-
+    decoded_path = percent_decode(path_str)
+    segments = [s for s in decoded_path.split("/") if s]
+    if ".." in segments:
+        return None
 
     path_str = "www" + path_str
 
